@@ -1,0 +1,21 @@
+version: "3"
+services:
+  api:
+    build: .
+    restart: always
+    ports:
+      - "8080:8080"
+    links:
+      - mongo
+    volumes:
+      - ./:/app
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - PORT=8080
+      - TOKEN_SECRET=5e59a670505e46cb2af9cc75c50f0f3161cf509e9d76764736892a5d4472c77f8fbd27c3ae5541c96d044e9f28cc3652c71b22fb8577bd86b7bd1410d07d5e6b
+  mongo:
+    image: mongo
+    volumes:
+      - ./data:/data/db
+    ports:
+      - '27018:27017'
