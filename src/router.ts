@@ -191,8 +191,4 @@ router.get("/search", verifyAccessTokenHeader, async (req, res) => {
   }
 });
 
-// todo:
-//  - Write unit tests for different components of the application.
-//  - Implement integration tests for the API endpoints.
-
 export default router;
