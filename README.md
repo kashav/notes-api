@@ -38,9 +38,9 @@ The application uses Docker to run.
 
 ### Routes:
 
-- POST `/register` responds with an access token, payload: `{email: string, password: string}`.
+- POST `/auth/register` responds with an access token, payload: `{email: string, password: string}`.
 
-- POST `/login` responds with an access token, payload: `{email: string, password: string}`.
+- POST `/auth/login` responds with an access token, payload: `{email: string, password: string}`.
 
 - POST `/notes` creates a new note, payload: `{title: string, body: string, tags: string[]}`.
 

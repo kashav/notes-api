@@ -1,57 +1,11 @@
 import { Router } from "express";
-
-import { Note, User } from "./models";
-import {
-  comparePassword,
-  generateAccessToken,
-  verifyAccessTokenHeader,
-  verifyNoteIdParam,
-} from "./utils";
+import { Note } from "../models";
+import { verifyAccessTokenHeader, verifyNoteIdParam } from "../utils";
 
 const router = Router();
 
-// create a new user
-router.post("/register", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    await User.create({ email, password });
-    const token = generateAccessToken(email);
-    res
-      .status(200)
-      .header("Authorization", token)
-      .json({ message: "User created" });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({ message: "User already exists" });
-    }
-    return res.status(500).json(error);
-  }
-});
-
-// authenticate an existing user
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) {
-      return res.status(403).json({ message: "Bad password" });
-    }
-
-    const token = generateAccessToken(email);
-    res.status(200).header("Authorization", token).json({ message: "OK" });
-  } catch (error) {
-    return res.status(500).json(error);
-  }
-});
-
-// create a new note for the authenticated user
-router.post("/notes", verifyAccessTokenHeader, async (req, res) => {
+// Create a new note for the authenticated user.
+router.post("/", verifyAccessTokenHeader, async (req, res) => {
   const userId = (req as any).authenticatedUserId;
   const { title, body, tags } = req.body;
 
@@ -73,8 +27,8 @@ router.post("/notes", verifyAccessTokenHeader, async (req, res) => {
   }
 });
 
-// retrieve a list of notes for the authenticated user
-router.get("/notes", verifyAccessTokenHeader, async (req, res) => {
+// Retrieve a list of notes for the authenticated user.
+router.get("/", verifyAccessTokenHeader, async (req, res) => {
   const userId = (req as any).authenticatedUserId;
 
   try {
@@ -89,9 +43,25 @@ router.get("/notes", verifyAccessTokenHeader, async (req, res) => {
   }
 });
 
-// retrieve a single note :id for the authenticated user
+// Execute full-text search for the authenticated user using the ?q parameter.
+router.get("/search", verifyAccessTokenHeader, async (req, res) => {
+  const userId = (req as any).authenticatedUserId;
+  const query = req.query.q as string;
+  try {
+    const results = await Note.find(
+      { author: userId, $text: { $search: query } },
+      ["_id", "title", "body", "tags"]
+    );
+    res.status(200).json(results);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error);
+  }
+});
+
+// Retrieve a single note for the authenticated user.
 router.get(
-  "/notes/:id",
+  "/:id",
   verifyAccessTokenHeader,
   verifyNoteIdParam,
   async (req, res) => {
@@ -117,9 +87,9 @@ router.get(
   }
 );
 
-// update a single note :id for the authenticated user
+// Update a single note for the authenticated user.
 router.put(
-  "/notes/:id",
+  "/:id",
   verifyAccessTokenHeader,
   verifyNoteIdParam,
   async (req, res) => {
@@ -146,9 +116,9 @@ router.put(
   }
 );
 
-// delete a single note :id for the authenticated user
+// Delete a single note for the authenticated user.
 router.delete(
-  "/notes/:id",
+  "/:id",
   verifyAccessTokenHeader,
   verifyNoteIdParam,
   async (req, res) => {
@@ -172,23 +142,5 @@ router.delete(
     }
   }
 );
-
-// full-text-search the title, body, and tags field of all notes
-router.get("/search", verifyAccessTokenHeader, async (req, res) => {
-  const userId = (req as any).authenticatedUserId;
-  const query = req.query.q as string;
-  try {
-    const results = await Note.find({ author: userId, $text: { $search: query } }, [
-      "_id",
-      "title",
-      "body",
-      "tags",
-    ]);
-    res.status(200).json(results);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json(error);
-  }
-});
 
 export default router;

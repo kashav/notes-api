@@ -50,9 +50,9 @@ afterEach(async () => {
   await db.connection.collections["notes"]!.drop();
 });
 
-test("POST /register", async () => {
+test("POST /auth/register", async () => {
   await supertest(server)
-    .post("/register")
+    .post("/auth/register")
     .send({ email: "email@email.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -60,14 +60,14 @@ test("POST /register", async () => {
     });
 });
 
-test("POST /login", async () => {
+test("POST /auth/login", async () => {
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "email@email.com", password: "password" })
     .expect(404);
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -75,7 +75,7 @@ test("POST /login", async () => {
     });
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "b@b.com", password: "wrong-password" })
     .expect(403);
 });
@@ -84,7 +84,7 @@ test("POST /notes", async () => {
   let accessToken: string;
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -110,7 +110,7 @@ test("GET /notes", async () => {
   let accessToken: string;
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -172,7 +172,7 @@ test("GET /notes/:id", async () => {
   let accessToken: string;
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -207,7 +207,7 @@ test("PUT /notes/:id", async () => {
   let accessToken: string;
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -238,7 +238,7 @@ test("DELETE /notes/:id", async () => {
   let accessToken: string;
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -264,11 +264,11 @@ test("DELETE /notes/:id", async () => {
     .expect(404);
 });
 
-test("GET /search", async () => {
+test("GET /notes/search", async () => {
   let accessToken: string;
 
   await supertest(server)
-    .post("/login")
+    .post("/auth/login")
     .send({ email: "a@a.com", password: "password" })
     .expect(200)
     .then((response) => {
@@ -276,7 +276,7 @@ test("GET /search", async () => {
     });
 
   await supertest(server)
-    .get("/search?q=Note%20body")
+    .get("/notes/search?q=Note body")
     .set("Authorization", accessToken)
     .send()
     .expect(200)
@@ -289,7 +289,7 @@ test("GET /search", async () => {
     });
 
   await supertest(server)
-    .get("/search?q=No%20match")
+    .get("/notes/search?q=No match")
     .set("Authorization", accessToken)
     .send()
     .expect(200)
