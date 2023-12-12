@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { Request, Response, NextFunction } from "express";
+import { Types } from 'mongoose';
+import { User } from "./models";
 
 const jwtSecretKey = process.env.TOKEN_SECRET || "token-secret";
 
@@ -8,11 +10,11 @@ export function generateAccessToken(email: string): string {
   return jwt.sign(email, jwtSecretKey);
 }
 
-export function verifyAccessToken(
+export async function verifyAccessTokenHeader(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const accessToken = req.header("Access-Token");
 
   if (!accessToken) {
@@ -22,11 +24,37 @@ export function verifyAccessToken(
 
   try {
     const email = jwt.verify(accessToken, jwtSecretKey);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).authenticatedEmail = email;
+
+    const user = await User.findOne({email});
+    if (!user) {
+        res.status(401).json({ message: 'Unauthorized'});
+        return next(null);
+    }
+
+    (req as any).authenticatedUserId = user._id;
     next();
   } catch (error) {
     res.status(401).json({ message: "Unauthorized" });
+    return next(error);
+  }
+}
+
+export function verifyNoteIdParam(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const id = req.params.id;
+  if (!id) {
+    res.status(404).json({ message: "Note not found" });
+    return next(null);
+  }
+
+  try {
+    (req as any).parsedNoteId = new Types.ObjectId(id);
+    next();
+  } catch (error) {
+    res.status(404).json({ message: "Note not found" });
     return next(error);
   }
 }

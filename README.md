@@ -44,5 +44,7 @@
 
 - DELETE `/notes/:id` deletes a note.
 
+- GET `/search?q=<query>` does a full text search on all notes.
+
 - _All `/notes` routes expect an 'Access-Token` header to be provided._
 

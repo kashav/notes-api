@@ -4,15 +4,11 @@ import { Note, User } from "./models";
 import {
   comparePassword,
   generateAccessToken,
-  verifyAccessToken,
+  verifyAccessTokenHeader,
+  verifyNoteIdParam,
 } from "./utils";
-import { Types } from "mongoose";
 
 const router = Router();
-
-router.get("/", async (req, res) => {
-  res.status(200).json({ message: "hello world" });
-});
 
 // create a new user
 router.post("/register", async (req, res) => {
@@ -51,17 +47,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// // create a new note for the authenticated user
-router.post("/notes", verifyAccessToken, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const email = (req as any).authenticatedEmail;
-  const user = await User.findOne({ email });
-
+// create a new note for the authenticated user
+router.post("/notes", verifyAccessTokenHeader, async (req, res) => {
+  const userId = (req as any).authenticatedUserId;
   const { title, body, tags } = req.body;
 
   try {
     const note = await Note.create({
-      author: user._id,
+      author: userId,
       title,
       body,
       tags,
@@ -78,13 +71,11 @@ router.post("/notes", verifyAccessToken, async (req, res) => {
 });
 
 // retrieve a list of notes for the authenticated user
-router.get("/notes", verifyAccessToken, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const email = (req as any).authenticatedEmail;
-  const user = await User.findOne({ email });
+router.get("/notes", verifyAccessTokenHeader, async (req, res) => {
+  const userId = (req as any).authenticatedUserId;
 
   try {
-    const notes = await Note.find({ author: user._id }, [
+    const notes = await Note.find({ author: userId }, [
       "title",
       "body",
       "tags",
@@ -95,77 +86,111 @@ router.get("/notes", verifyAccessToken, async (req, res) => {
   }
 });
 
-// // retrieve a single note :id for the authenticated user
-router.get("/notes/:id", verifyAccessToken, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const email = (req as any).authenticatedEmail;
-  const user = await User.findOne({ email });
+// retrieve a single note :id for the authenticated user
+router.get(
+  "/notes/:id",
+  verifyAccessTokenHeader,
+  verifyNoteIdParam,
+  async (req, res) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (req as any).authenticatedUserId;
+    const noteId = (req as any).parsedNoteId;
 
-  const noteId = new Types.ObjectId(req.params.id);
+    try {
+      const note = await Note.findOne({ _id: noteId, author: userId }, [
+        "title",
+        "body",
+        "tags",
+      ]);
 
+      if (note === undefined) {
+        res.status(404).json({ message: "Note not found" });
+        return;
+      }
+
+      res.status(200).json(note || {});
+    } catch (error) {
+      res.status(500).json(error);
+    }
+  }
+);
+
+// update a single note :id for the authenticated user
+router.put(
+  "/notes/:id",
+  verifyAccessTokenHeader,
+  verifyNoteIdParam,
+  async (req, res) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (req as any).authenticatedUserId;
+    const noteId = (req as any).parsedNoteId;
+    const { title, body, tags } = req.body;
+
+    try {
+      const updatedNote = await Note.findOneAndUpdate(
+        { _id: noteId, author: userId },
+        { title, body, tags },
+        { new: true }
+      );
+
+      if (!updatedNote) {
+        res.status(404).json({ message: "Note not found" });
+        return;
+      }
+
+      res.status(200).json(updatedNote);
+    } catch (error) {
+      res.status(500).json(error);
+    }
+  }
+);
+
+// delete a single note :id for the authenticated user
+router.delete(
+  "/notes/:id",
+  verifyAccessTokenHeader,
+  verifyNoteIdParam,
+  async (req, res) => {
+    const userId = (req as any).authenticatedUserId;
+    const noteId = (req as any).parsedNoteId;
+
+    try {
+      const deletedNote = await Note.findOneAndDelete({
+        _id: noteId,
+        author: userId,
+      });
+
+      if (!deletedNote) {
+        res.status(404).json({ message: "Note not found" });
+        return;
+      }
+
+      res.status(200).json({ message: "OK" });
+    } catch (error) {
+      res.status(500).json(error);
+    }
+  }
+);
+
+// full-text-search the title, body, and tags field of all notes
+router.get("/search", verifyAccessTokenHeader, async (req, res) => {
+  const query = req.query.q as string;
   try {
-    const note = await Note.findOne({ _id: noteId, author: user._id }, [
+    const results = await Note.find({ $text: { $search: query } }, [
+      "_id",
+      "author",
       "title",
       "body",
       "tags",
     ]);
-    res.status(200).json(note || {});
-  } catch (error) {
-    res.status(500).json(error);
-  }
-});
-
-// // update a single note :id for the authenticated user
-router.put("/notes/:id", verifyAccessToken, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const email = (req as any).authenticatedEmail;
-  const user = await User.findOne({ email });
-
-  const noteId = new Types.ObjectId(req.params.id);
-  const { title, body, tags } = req.body;
-
-  try {
-    const updatedNote = await Note.findOneAndUpdate(
-      { _id: noteId, author: user._id },
-      { title, body, tags },
-      { new: true }
-    );
-    if (!updatedNote) {
-      res.status(500).json({ message: "Failed to update note" });
-      return;
-    }
-
-    res.status(200).json(updatedNote);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-});
-
-// // delete a single note :id for the authenticated user
-router.delete("/notes/:id", verifyAccessToken, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const email = (req as any).authenticatedEmail;
-  const user = await User.findOne({ email });
-
-  const noteId = new Types.ObjectId(req.params.id);
-
-  try {
-    const deletedNote = await Note.findOneAndDelete({
-      _id: noteId,
-      author: user._id,
-    });
-    if (!deletedNote) {
-      res.status(500).json({ message: "Failed to delete note" });
-      return;
-    }
-    res.status(200).json({ message: "OK" });
+    res.status(200).json(results);
   } catch (error) {
     res.status(500).json(error);
   }
 });
 
 // todo:
-//  - Add full-text search functionality to find notes by title, body, or tags.
 //  - Write unit tests for different components of the application.
+//  - Implement integration tests for the API endpoints.
 
 export default router;
