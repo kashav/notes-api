@@ -59,6 +59,6 @@ const NoteSchema = new Schema<INote>({
   tags: { type: [String], required: true },
 });
 
-NoteSchema.index({'$**': 'text'});
+NoteSchema.index({ "$**": "text" });
 
 export const Note = model("Note", NoteSchema);
