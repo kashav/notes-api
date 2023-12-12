@@ -15,7 +15,7 @@ export async function verifyAccessTokenHeader(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const accessToken = req.header("Access-Token");
+  const accessToken = req.header("Authorization");
 
   if (!accessToken) {
     res.status(401).json({ message: "Unauthorized" });

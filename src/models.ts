@@ -6,7 +6,7 @@ const salt: number = 12;
 
 // User
 
-interface IUser extends Document {
+export interface IUser extends Document {
   email: string;
   password: string;
 }
@@ -45,7 +45,7 @@ export const User = model("User", UserSchema);
 
 // Note
 
-interface INote extends Document {
+export interface INote extends Document {
   author: Types.ObjectId;
   title: string;
   body: string;

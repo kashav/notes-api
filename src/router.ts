@@ -16,7 +16,10 @@ router.post("/register", async (req, res) => {
     const { email, password } = req.body;
     await User.create({ email, password });
     const token = generateAccessToken(email);
-    res.status(200).json({ message: "User created", token });
+    res
+      .status(200)
+      .header("Authorization", token)
+      .json({ message: "User created" });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({ message: "User already exists" });
@@ -37,11 +40,11 @@ router.post("/login", async (req, res) => {
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(403).json({ message: "Bad password" });
     }
 
     const token = generateAccessToken(email);
-    res.status(200).json({ message: "OK", token });
+    res.status(200).header("Authorization", token).json({ message: "OK" });
   } catch (error) {
     return res.status(500).json(error);
   }
@@ -64,7 +67,7 @@ router.post("/notes", verifyAccessTokenHeader, async (req, res) => {
       return res.status(500).json({ message: "Couldn't create note" });
     }
 
-    res.status(200).json({ message: "OK", note: note._id });
+    res.status(200).json({ message: "Created note", note: note._id });
   } catch (error) {
     res.status(500).json(error);
   }
@@ -92,7 +95,6 @@ router.get(
   verifyAccessTokenHeader,
   verifyNoteIdParam,
   async (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (req as any).authenticatedUserId;
     const noteId = (req as any).parsedNoteId;
 
@@ -103,7 +105,7 @@ router.get(
         "tags",
       ]);
 
-      if (note === undefined) {
+      if (!note) {
         res.status(404).json({ message: "Note not found" });
         return;
       }
@@ -121,7 +123,6 @@ router.put(
   verifyAccessTokenHeader,
   verifyNoteIdParam,
   async (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (req as any).authenticatedUserId;
     const noteId = (req as any).parsedNoteId;
     const { title, body, tags } = req.body;
@@ -174,17 +175,18 @@ router.delete(
 
 // full-text-search the title, body, and tags field of all notes
 router.get("/search", verifyAccessTokenHeader, async (req, res) => {
+  const userId = (req as any).authenticatedUserId;
   const query = req.query.q as string;
   try {
-    const results = await Note.find({ $text: { $search: query } }, [
+    const results = await Note.find({ author: userId, $text: { $search: query } }, [
       "_id",
-      "author",
       "title",
       "body",
       "tags",
     ]);
     res.status(200).json(results);
   } catch (error) {
+    console.error(error);
     res.status(500).json(error);
   }
 });

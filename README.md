@@ -1,20 +1,22 @@
 # supademo-assignment
 
-### Instructions:
+### Usage:
 
-1. Build the Docker containers:
+The application uses Docker to run.
+
+1. Build the containers:
 
     ```sh
     $ docker-compose build
     ```
 
-1. Start MongoDB via Docker Compose:
+1. Start MongoDB in detached mode:
 
     ```sh
     $ docker-compose up -d mongo
     ```
 
-1. Start the API server via Docker Compose:
+1. Start the API server:
 
     ```sh
     $ docker-compose up api
@@ -26,6 +28,12 @@
 
     ```sh
     $ docker-compose down
+    ```
+
+1. Run integration tests:
+
+    ```
+    $ docker-compose run api npm test
     ```
 
 ### Routes:
@@ -45,6 +53,4 @@
 - DELETE `/notes/:id` deletes a note.
 
 - GET `/search?q=<query>` does a full text search on all notes.
-
-- _All `/notes` routes expect an 'Access-Token` header to be provided._
 
