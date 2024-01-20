@@ -1,4 +1,4 @@
-# supademo-assignment
+# notes-api
 
 ### Usage:
 
